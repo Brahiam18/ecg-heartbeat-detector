@@ -1,0 +1,88 @@
+% Complete schematic of the ECG heartbeat detector (circuitikz)
+\begin{circuitikz}[european resistors, american inductors, font=\small]
+\ctikzset{amplifiers/scale=0.75, diodes/scale=0.6, resistors/scale=0.7, capacitors/scale=0.7, grounds/scale=0.8}
+
+% ================= ROW 1: amplifier + rectifier =================
+% --- U1: non-inverting amplifier ---
+\draw (0,0) node[ocirc]{} node[left]{$V_{in}$} to[short,-*] (1,0) coordinate(nin);
+\node[op amp, noinv input up, anchor=+] (U1) at (2.4,0) {U1};
+\draw (nin) -- (U1.+);
+\draw (nin) to[R, l_={$R_0$\ 100\,k$\Omega$}] ++(0,-2.2) node[ground]{};
+\draw (U1.-) -- ++(-0.35,0) coordinate(m1) -- (m1 |- 0,-2.0) coordinate(n1);
+\coordinate (vg) at ($(U1.out)+(0.6,0)$);
+\draw (U1.out) to[short,-*] (vg);
+\draw (n1) to[R, l={$R_{g1}$\ 10\,k$\Omega$}, *-] ++(0,-1.6) node[ground]{};
+\draw (n1) to[R, l={$R_{f1}$\ 39\,k$\Omega$}] (n1 -| vg) -- (vg);
+\node[above] at (vg) {$V_g$ (TP1)};
+
+% --- U2: inverting half-wave rectifier ---
+\node[op amp, anchor=-] (U2) at ($(vg)+(3.6,0)$) {U2};
+\coordinate (N) at ($(U2.-)+(-0.6,0)$);
+\draw (vg) to[R, l={$R_2$\ 10\,k$\Omega$}, -*] (N) -- (U2.-);
+\draw (U2.+) -- ++(-0.3,0) node[ground]{};
+\coordinate (o2) at ($(U2.out)+(0.45,0)$);
+\draw (U2.out) to[short,-*] (o2);
+\draw (N) to[short,-*] (N |- 0,1.3) coordinate(d1l);
+\draw (d1l -| o2) to[D, l_={$D_1$}] (d1l);
+\draw (d1l -| o2) -- (o2);
+\coordinate (vhwx) at ($(o2)+(1.3,0)$);
+\draw (d1l) -- (N |- 0,2.6) to[R, l={$R_3$\ 10\,k$\Omega$}, -*] (vhwx |- 0,2.6) coordinate(VHW);
+\draw (VHW) to[D, l={$D_2$}] (VHW |- o2) -- (o2);
+\node[above right] at (VHW) {$V_{hw}$ (TP2)};
+
+% --- U3: inverting summer ---
+\coordinate (S) at ($(VHW)+(3.2,0)$);
+\draw (VHW) to[R, l_={$R_5$\ 10\,k$\Omega$}, -*] (S);
+\node[op amp, anchor=-] (U3) at ($(S |- 0,1.0)+(0.7,0)$) {U3};
+\draw (S) -- (S |- U3.-) to[short,-] (U3.-);
+\draw (U3.+) -- ++(-0.3,0) node[ground]{};
+\coordinate (o3) at ($(U3.out)+(0.5,0)$);
+\draw (U3.out) to[short,-*] (o3);
+\draw (S) -- ++(0,1.2) coordinate(r6l) to[R, l={$R_6$\ 20\,k$\Omega$}] (r6l -| o3) -- (o3);
+\draw (vg) to[short,*-] (vg |- 0,-4.0) to[R, l={$R_4$\ 20\,k$\Omega$}] (S |- 0,-4.0) to[short,-*] (S |- U3.-);
+\node[above right] at (o3) {$V_r=|V_g|$ (TP3)};
+
+% ================= ROW 2: peak detector + Schmitt + output =================
+\coordinate (yrow) at (0,-8.0);
+\draw (o3) -- ++(0.6,0) coordinate(o3b) -- (o3b |- 0,-5.6) -- (0.4,-5.6) coordinate(cr) -- (cr |- yrow) -- ++(1.0,0) coordinate(u4p);
+
+% --- U4: detector ---
+\node[op amp, noinv input up, anchor=+] (U4) at (u4p) {U4};
+\coordinate (o4) at ($(U4.out)+(0.4,0)$);
+\draw (U4.out) to[short,-*] (o4);
+\draw (o4) to[D, l={$D_3$}] ++(1.6,0) to[R, l={$R_7$\ 100\,$\Omega$}] ++(2.0,0) coordinate(nc);
+\draw (nc) to[C, l_={$C_1$\ 1\,$\mu$F}, *-] ++(0,-1.8) node[ground]{};
+\draw (nc) to[short,-*] ++(1.4,0) coordinate(nc2);
+\draw (nc2) to[R, l={$R_9$\ 100\,k$\Omega$}] ++(0,-1.8) node[ground]{};
+
+% D4 and R8
+\draw (U4.-) -- ++(-0.35,0) coordinate(a4) -- ++(0,-1.0) coordinate(d4l);
+\draw (d4l) to[D, l_={$D_4$}, *-] (d4l -| o4) -- (o4);
+
+% --- U5: buffer ---
+\node[op amp, noinv input up, anchor=+] (U5) at ($(nc2)+(1.4,0)$) {U5};
+\draw (nc2) -- (U5.+);
+\coordinate (o5) at ($(U5.out)+(0.45,0)$);
+\draw (U5.out) to[short,-*] (o5);
+\draw (U5.-) -- ++(-0.3,0) -- ++(0,-0.9) -| (o5);
+\coordinate (o6) at ($(o5)+(0.9,0)$);
+\draw (o5) to[short,-*] (o6);
+\node[above] at (o6) {$V_{env}$ (TP4)};
+\draw (d4l) -- ++(0,-1.6) coordinate(r8l) to[R, l_={$R_8$\ 10\,k$\Omega$}] (r8l -| o6) -- (o6);
+
+% --- U6: non-inverting Schmitt ---
+\node[op amp, noinv input up, anchor=+] (U6) at ($(o6)+(3.0,0)$) {U6};
+\coordinate (P) at ($(U6.+)+(-0.45,0)$);
+\draw (o6) to[R, l_={$R_{10}$\ 10\,k$\Omega$}, -*] (P) -- (U6.+);
+\coordinate (o7) at ($(U6.out)+(0.5,0)$);
+\draw (U6.out) to[short,-*] (o7);
+\draw (P) -- ++(0,1.3) coordinate(r11l) to[R, l={$R_{11}$\ 430\,k$\Omega$}] (r11l -| o7) -- (o7);
+\draw (U6.-) -- ++(-0.45,0) coordinate(q0) -- ++(0,-1.1) coordinate(Q);
+\draw (Q) to[R, l={$R_{13}$\ 1\,k$\Omega$}, *-] ++(0,-1.6) node[ground]{};
+\draw (Q) to[R, l_={$R_{12}$\ 15\,k$\Omega$}] ++(-1.8,0) node[left]{$+12$\,V};
+\node[right] at ($(Q)+(0.05,0.25)$) {\footnotesize $V_{ref}=0.75$\,V};
+
+% --- Output ---
+\draw (o7) to[D, l={$D_5$}] ++(1.5,0) coordinate(l1) to[R, l={$R_{14}$\ 1\,k$\Omega$}] ++(0,-1.8) to[led, l={LED}] ++(0,-1.5) node[ground]{};
+\node[above] at (o7) {TP5};
+\end{circuitikz}
