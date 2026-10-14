@@ -20,14 +20,7 @@ Design and implement an op-amp-based heartbeat detector powered from ±12 V, abl
 
 ## Block diagram
 
-```mermaid
-flowchart LR
-    IN([Vin<br/>ECG]) --> A["Non-inverting<br/>amplifier<br/>G = 4.9"]
-    A -->|TP1| B["Precision<br/>rectifier<br/>Vr = |Vg|"]
-    B -->|TP3| C["Peak detector<br/>τ = 100 ms"]
-    C -->|TP4| D["Schmitt trigger<br/>1.01 V / 0.52 V"]
-    D -->|TP5| E([LED])
-```
+![Block diagram](docs/img/block_diagram.png)
 
 ## Circuit
 
