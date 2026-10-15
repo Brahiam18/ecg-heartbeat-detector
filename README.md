@@ -1,4 +1,4 @@
-# ECG Heartbeat Detector with Operational Amplifiers
+# Ideal ECG Heartbeat Detector with Operational Amplifiers
 
 ![Proteus](https://img.shields.io/badge/Simulation-Proteus_8-1f425f)
 ![Python](https://img.shields.io/badge/Python-NumPy%20%7C%20Matplotlib-3776AB)
@@ -88,6 +88,16 @@ Built on a breadboard with **two LM324N** on ±12 V and tested with the built-in
 - **One pulse per beat** with a realistic cardiac waveform, with no false triggers from the T wave.
 - With **4 Vpp at 1.2 Hz**, twice the design maximum, the circuit still detected every beat: op-amp saturation clamps the envelope at ~11 V and bounds the discharge time. The low time between beats dropped to 78 ms, so the design is close to its limit there.
 - With a sine wave, the rectifier outputs a clean full wave whose valleys reach exactly 0 V (no dead zone). The envelope does not have time to fall below VTL between half-cycles, as the simulation predicted.
+
+## Alternative with two comparators
+
+The same job could be done with a **window comparator**: two comparators on Vg (one for +VT and one for −VT) joined by diodes. It uses fewer op-amps, but it is **less effective** at counting beats:
+- **It counts lobes, not beats:** with the measured signal (R = 0.78 V and S = −0.22 V at 1 Vpp; 3.8 V and −1.08 V after the gain), the R and S waves each fire one comparator, so the circuit outputs **two pulses per beat**.
+- **It has no refractory period:** without a peak detector, nothing merges the Q, R and S lobes into a single event.
+- **It is more sensitive to noise:** both comparators would need hysteresis, and they still see the raw signal.
+- **It needs two symmetric references** (+VT and −VT) instead of one.
+
+> The detector is called **ideal** because it is meant for clean ECG signals from a generator, with no 60 Hz noise or baseline wander. A real physiological signal would first need an instrumentation amplifier with filtering.
 
 ## Repository layout
 

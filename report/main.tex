@@ -1,5 +1,5 @@
 % =====================================================================
-%  Lab report: ECG heartbeat detector with operational amplifiers
+%  Lab report: Ideal ECG heartbeat detector with operational amplifiers
 %  (nonlinear circuits)
 %  Compile with pdfLaTeX (Overleaf: pdfLaTeX compiler).
 % =====================================================================
@@ -59,7 +59,7 @@
 % ---------- Header ----------
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\small ECG heartbeat detector with op-amps}
+\fancyhead[L]{\small Ideal ECG heartbeat detector with op-amps}
 \fancyhead[R]{\small Nonlinear Circuits Laboratory}
 \fancyfoot[C]{\thepage}
 \setlength{\headheight}{14pt}
@@ -85,7 +85,7 @@
 {\large Faculty of Engineering\par}
 {\large Electronic Engineering Program\par}
 \vspace{2.5cm}
-{\LARGE\bfseries ECG Heartbeat Detector with Operational Amplifiers\par}
+{\LARGE\bfseries Ideal ECG Heartbeat Detector with Operational Amplifiers\par}
 \vspace{0.6cm}
 {\Large Precision Rectifier, Peak Detector and Schmitt Comparator\par}
 \vspace{2.5cm}
@@ -131,6 +131,8 @@ This report presents the complete design of that circuit: the derivation of each
 \fbox{\parbox{0.92\linewidth}{\vspace{2mm}\itshape
 Design and implement a heartbeat detector based on operational amplifiers powered from $\pm\SI{12}{V}$, able to identify every QRS complex of an ideal ECG-like signal of 0.5 to \SI{2}{V_{pp}}, regardless of its polarity or signal type, delivering one clean rectangular pulse per beat over a range of 40 to 150 beats per minute.\vspace{2mm}}}
 \end{center}
+
+The detector is called \textbf{ideal} because it is intended for clean ECG signals, such as those from a function generator: no \SI{60}{Hz} noise, no baseline wander and no motion artifacts. For that reason it has no instrumentation amplifier and no filtering; a real physiological signal would need that conditioning stage in front of it.
 
 The assignment only sets the conditions of the signal and of the circuit build; all other values (gain, time constant, thresholds) are outcomes of the design. The starting data are:
 \begin{itemize}
@@ -1105,6 +1107,37 @@ Offset on $\Venv$ & 15--\SI{20}{mV} & 20--\SI{45}{mV} typical & Well below $\VTL
 \end{itemize}
 
 % ---------------------------- 10. CONCLUSIONS ------------------------
+\subsection{Alternative with two comparators}\label{sec:doscomp}
+
+The same basic function, detecting a QRS of either polarity, can be obtained with a much simpler circuit: a \emph{window comparator}. After amplifier U1, two comparators look directly at $\Vg$. One drives its output high when $\Vg>+V_T$ and the other when $\Vg<-V_T$, and their outputs are joined by two diodes (an OR gate) that drive the LED. It uses two op-amps instead of five after U1 and needs no rectifier, summer or peak detector. However, it is less effective at counting heartbeats, for four reasons:
+
+\begin{enumerate}
+  \item \textbf{It counts lobes, not beats.} Without a peak detector, every threshold crossing produces a pulse, and a biphasic QRS triggers both comparators. With the cardiac signal measured on the breadboard (\SI{1}{V_{pp}}: R wave of \SI{0.78}{V} and S wave of $-\SI{0.22}{V}$), after the gain of 4.9 the R wave reaches \SI{3.8}{V} and the S wave $-\SI{1.08}{V}$. With $V_T=\SI{1}{V}$, the R wave fires the positive comparator and the S wave the negative one: the circuit outputs \textbf{two pulses per beat} and the measured heart rate doubles. Raising $V_T$ to ignore the S wave means small signals, or signals with a negative R wave, are no longer detected.
+  \item \textbf{It has no refractory period.} The output pulse lasts only while the signal is beyond the threshold, a few tens of milliseconds, and its width depends on the shape of each QRS. In the implemented design, $\tau$ sets a window that merges the Q, R and S lobes into a single event and does not reopen until the envelope falls below $\VTL$.
+  \item \textbf{It is more sensitive to noise.} Without hysteresis, noise near the threshold makes the output chatter on every edge. Adding positive feedback to both comparators doubles the resistor tuning, and each comparator still sees the raw signal with all its noise. In the implemented design a single comparator with hysteresis is enough, because its input is already rectified and smoothed by the peak detector.
+  \item \textbf{It needs two symmetric thresholds.} Both $+V_T$ and $-V_T$ must be generated (an extra negative reference) and matched; if they differ, the circuit is more sensitive to one polarity than the other. The implemented design uses a single reference, because the rectifier has already folded both polarities onto the same side.
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\caption{Window comparator versus the implemented design.}\label{tab:doscomp}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright}p{3.6cm}>{\raggedright}p{5.2cm}X@{}}
+\toprule
+Criterion & Two comparators (window) & Implemented design \\
+\midrule
+Op-amps after U1 & 2 & 5 \\
+Pulses per beat with a biphasic QRS & 2 (R and S) & 1 \\
+Window that merges the lobes & None & $\tau=\SI{100}{ms}$ \\
+Hysteresis & Must be added to each comparator & One Schmitt trigger \\
+References & $+V_T$ and $-V_T$ & One ($\Vref$) \\
+Output pulse width & Variable, depends on the QRS shape & Set by $\tau$ and the thresholds \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+In short, the window comparator is cheaper in components but gives less reliable detection. The implemented design spends more op-amps to turn each heartbeat into a single event \emph{before} deciding, and that is what guarantees one pulse per beat.
+
 \section{Conclusions}
 \begin{itemize}
   \item A heartbeat detector that delivers one pulse for every QRS complex was designed using only nonlinear op-amp blocks. In Proteus the values matched the calculated ones with errors of 1.6\% or less: peaks of \SI{4.90}{V} at $\Vr$ and \SI{4.95}{V} at $\Venv$, and an output pulse of about \SI{400}{ms} versus the predicted \SI{405}{ms}.
@@ -1115,6 +1148,7 @@ Offset on $\Venv$ & 15--\SI{20}{mV} & 20--\SI{45}{mV} typical & Well below $\VTL
   \item The buffer and resistor R8 are essential: the buffer prevents R8 and the comparator from discharging the capacitor (without it $\tau$ would drop to about \SI{9}{ms}), and R8 allows the buffer output and the virtual ground of the detector to be at different voltages during the discharge.
   \item The positive feedback of the Schmitt comparator gives two thresholds (\SI{1.01}{V} and \SI{0.52}{V}) and regenerative transitions: when it trips, the non-inverting input jumps far from the reference and noise cannot switch the output back. The T wave of the synthetic heartbeat caused no false triggers.
   \item The design has clear limits: fixed thresholds (inputs of 0.4 to \SI{2.1}{V_{pp}}), a maximum rate of about 160 bpm at the largest amplitude, and no filtering. A next step would be to add an instrumentation amplifier with a 0.5 to \SI{40}{Hz} band-pass filter in front, use an adaptive threshold, and count the pulses with a microcontroller to display the heart rate.
+  \item The same basic goal could be reached with a two-comparator window detector using fewer parts, but it would be less effective: without a peak detector it counts lobes instead of beats (with the measured signal, the R and S waves would give two pulses per beat), it has no refractory period, it is more sensitive to noise and it needs two symmetric thresholds (Section~\ref{sec:doscomp}).
 \end{itemize}
 
 % ---------------------------- REFERENCES -----------------------------
